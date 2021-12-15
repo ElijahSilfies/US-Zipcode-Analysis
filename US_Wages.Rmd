@@ -1,0 +1,124 @@
+---
+title: "Wages MArkdown"
+author: "Elijah Silfies"
+date: "11/11/2021"
+output: html_notebook
+---
+What are the 100 highest total wage zip codes? lowest?
+what are the 100 highest average wage zip codes? lowest?
+how does the 100 total wages of the zip codes differ from the 100 average wages of the zipcodes?
+top 3 states with the highest/lowest wages?
+
+
+
+
+
+###Load The Neccesary libraries
+```{r}
+library(tidyverse)
+```
+
+### Examine data
+```{r}
+wages <- read_csv("free-zipcode-database.csv")
+glimpse(wages)
+```
+
+### Looking at United States only
+```{r}
+wages <- wages %>% filter(Country == "US")
+```
+
+### Removing unwanted variables
+```{r}
+wages <- wages %>% select(-RecordNumber,-Xaxis,-Yaxis,-Zaxis,-Location,-WorldRegion,-LocationText,-LocationType,-Country,-Decommisioned,-Notes)
+```
+
+###Removing Unwanted cases like puerto rico and NA values and duplicates
+```{r}
+unique(wages$State)
+
+wages <- wages %>% filter(State != "PR")
+
+for(i in 1:9){
+  wages<- wages %>% filter(!is.na(wages[i]))
+}
+
+wages <- wages %>% distinct(Zipcode, .keep_all = TRUE)
+```
+We see a loss of about 50,000 values in the data set. About 25,000 lost from blank values and another 25,000 from duplicates. Since this is the majority of the data set, it is not a very clean data set and may not have a very accurate representation of the initial data. However, I will still plan to analyse the data in a comprehensive way in order to find answers to the proposed questions.
+
+### What is the 100 highest wage zip codes?
+```{r}
+highestwage <- wages %>% arrange(-TotalWages)
+highestwage <- highestwage %>% mutate(rank = 1:28844)
+highestwage <- highestwage %>% filter(rank <= 100)
+print(head(highestwage))
+highestwage %>% ggplot(aes(x = State, y = TotalWages)) + geom_point() + labs(title = "State vs. Total Zip Code Wages" ,x = "State",y = "Total Zip Code Wage (Dollars)")
+```
+Graph 1: BY looking at the graph of each state in the top 100 and the wages of the zip codes in each state, it is easy to see that many zip codes in California, New York, Texas, and Illinois contribute the majority of the zip codes with the highest wages. Its also shown that Illinois holds the maximum value with California and New York slightly behind.
+
+
+```{r}
+
+highestwage %>% ggplot(aes(x = State,fill = State)) + geom_bar() + labs(title = "Number of High Wage Zip Codes Per State" ,x = "State",y = "Frequency")
+```
+Graph 2: By looking at the frequency table for each state we can confirm the conclusions found from Graph 1. However it is shown that California has many more zip codes in the top 100 highest wages than any other state.
+
+```{r}
+highestwage %>% ggplot(aes(x = TotalWages)) + geom_density() + labs(title = "Frequency of Total Wages in the Top 100" ,x = "Total Wages",y = "Density") 
+```
+
+
+### What is the 100 lowest wage zip codes?
+```{r}
+lowestwage <- wages %>% arrange(TotalWages)
+lowestwage <- lowestwage %>% mutate(rank = 1:28844)
+lowestwage <- lowestwage %>% filter(rank <= 100)
+print(head(lowestwage))
+```
+
+### Create an average wage column by dividing the total wage by the estimated population and formatting for the dollar amounts
+```{r}
+wages <- wages %>% mutate(averageWage = format(round(TotalWages/EstimatedPopulation,2), nsmall = 2))
+wages <- wages %>% mutate(averageWage = TotalWages/EstimatedPopulation)
+```
+
+### What is the 100 highest average wage zip codes?
+```{r}
+highestavgwage <- wages %>% arrange(-averageWage)
+highestavgwage <- highestavgwage %>% mutate(rank = 1:28844)
+highestavgwage <- highestavgwage %>% filter(rank <= 100)
+print(head(highestavgwage))
+```
+
+### What is the 100 lowest average wage zip codes?
+```{r}
+lowestavgwage <- wages %>% arrange(averageWage)
+lowestavgwage <- lowestavgwage %>% mutate(rank = 1:28844)
+lowestavgwage <- lowestavgwage %>% filter(rank <= 100)
+print(head(lowestavgwage))
+```
+
+### What are the 3 states with the highest wages by total?
+```{r}
+statewage <- wages %>% group_by(State) %>% summarise(
+  totalstatewages = sum(TotalWages))
+highstatewage <- statewage %>% arrange(-totalstatewages)
+highstatewage <- highstatewage %>% mutate(rank = 1:51)
+highstatewage <- highstatewage %>% filter(rank <= 3)
+print(head(highstatewage))
+```
+These results support the previous conclusion from Graph 1 where we saw that California Texas and New York were among the main contributors of the highest state wages. However these results give us further insight that Illinois is not actually among the top 3 highest wage states when looking at the total wages
+
+
+### What are the 3 states with the lowest wages by total?
+```{r}
+lowstatewage <- statewage %>% arrange(totalstatewages)
+lowstatewage <- lowstatewage %>% mutate(rank = 1:51)
+lowstatewage <- lowstatewage %>% filter(rank <= 3)
+print(head(lowstatewage))
+```
+
+
+
