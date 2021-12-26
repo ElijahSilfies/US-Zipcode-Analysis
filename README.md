@@ -7,3 +7,5 @@ Methods in use:
 -PLoting and Graphing
 -Mapping
 -Linear Regression Models
+
+**The CleanWages.csv file is an output of the R program and is the data table that was used to generate the plots in Tableau
