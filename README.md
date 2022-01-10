@@ -1,4 +1,4 @@
-# Zipcode-Analysis (Work in progress)
+# Zipcode-Analysis
 I will be taking data found on kaggel. My objectives are to clean the data and draw reasonable conclusions about the wages in the US by looking at each zip code. 
 Further objectives are to take in outside data in order to find trends and correlations between other ecenomical subjects.
 
