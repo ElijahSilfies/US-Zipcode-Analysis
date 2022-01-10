@@ -1,25 +1,27 @@
 ---
-title: "Wages MArkdown"
+title: "Wages Via Zip Code"
 author: "Elijah Silfies"
 date: "11/11/2021"
 output: html_notebook
 ---
+### Objectives
 What are the 100 highest total wage zip codes? lowest?
 what are the 100 highest average wage zip codes? lowest?
 how does the 100 total wages of the zip codes differ from the 100 average wages of the zipcodes?
 top 3 states with the highest/lowest wages?
 Make clear concise graphs and compare to other types of existing data
+Create a machine learning model to predict future data
 
 
 
-
-###Load The Neccesary libraries
+### Load The Neccesary libraries
 ```{r}
 library(tidyverse)
 library(maps)
 library(mapdata)
 library(plotly)
 library(caTools)
+library(reshape2)
 ```
 
 ### Examine data
@@ -38,7 +40,7 @@ wages <- wages %>% filter(Country == "US")
 wages <- wages %>% select(-RecordNumber,-Xaxis,-Yaxis,-Zaxis,-Location,-WorldRegion,-LocationText,-LocationType,-Country,-Decommisioned,-Notes)
 ```
 
-###Removing Unwanted cases like puerto rico and NA values and duplicates
+### Removing Unwanted cases like puerto rico and NA values and duplicates
 ```{r}
 unique(wages$State)
 
@@ -52,6 +54,18 @@ wages <- wages %>% distinct(Zipcode, .keep_all = TRUE)
 ```
 We see a loss of about 50,000 values in the data set. About 25,000 lost from blank values and another 25,000 from duplicates. Since this is the majority of the data set, it is not a very clean data set and may not have a very accurate representation of the initial data. However, I will still plan to analyse the data in a comprehensive way in order to find answers to the proposed questions.
 
+### Create an average wage column by dividing the total wage by the estimated population and formatting for the dollar amounts
+```{r}
+wages <- wages %>% mutate(averageWage = format(round(TotalWages/EstimatedPopulation,2), nsmall = 2))
+wages <- wages %>% mutate(averageWage = TotalWages/EstimatedPopulation)
+```
+
+### EXporting a csv file in order to use the cleaned data in other programs i.e. Tableau
+```{r}
+write.table(wages,file = "CleanWages.csv",row.names = F,sep = ",")
+```
+
+
 ### What is the 100 highest wage zip codes?
 ```{r}
 options(scipen = 999)
@@ -59,22 +73,21 @@ highestwage <- wages %>% arrange(-TotalWages)
 highestwage <- highestwage %>% mutate(rank = 1:28844)
 highestwage <- highestwage %>% filter(rank <= 100)
 print(head(highestwage))
-highestwage %>% ggplot(aes(x = State, y = TotalWages/1000000000)) + geom_point() + labs(title = "State vs. Total Zip Code Wages" ,x = "State",y = "Total Zip Code Wage (Billion $)")
 ```
-Graph 1: BY looking at the graph of each state in the top 100 and the wages of the zip codes in each state, it is easy to see that many zip codes in California, New York, Texas, and Illinois contribute the majority of the zip codes with the highest wages. Its also shown that Illinois holds the maximum value with California and New York slightly behind.
+
 
 
 ```{r}
 
-highestwage %>% ggplot(aes(x = State,fill = State)) + geom_bar() + labs(title = "Number of High Wage Zip Codes Per State" ,x = "State",y = "Frequency")
+highestwage %>% ggplot(aes(x = State,fill = State)) + geom_bar() + labs(title = "Number of High Wage Zip Codes Per State in the Top 100" ,x = "State",y = "Frequency")
 ```
-Graph 2: By looking at the frequency table for each state we can confirm the conclusions found from Graph 1. However it is shown that California has many more zip codes in the top 100 highest wages than any other state.
+Looking at the graph of each state in the top 100 and the Total wages of the zip codes in each state, it is easy to see that California, New York, Texas, and Illinois contribute the majority of the zip codes with the highest wages.
 
 ```{r}
 options(scipen = 999)
 highestwage %>% ggplot(aes(x = TotalWages/1000000000)) + geom_density() + labs(title = "Density of Total Wages in the Top 100" ,x = "Total Wages (Billion $)",y = "Density") 
 ```
-
+By taking a look at the graph of the density of each price we can see that the majority of zip codes in the top 100 highest wages are around 1.7 billion dollars. Also as you get past 1.9 billion dollars the amount of zip codes decreases steadily.
 
 ### What is the 100 lowest wage zip codes?
 ```{r}
@@ -84,11 +97,18 @@ lowestwage <- lowestwage %>% filter(rank <= 100)
 print(head(lowestwage))
 ```
 
-### Create an average wage column by dividing the total wage by the estimated population and formatting for the dollar amounts
 ```{r}
-wages <- wages %>% mutate(averageWage = format(round(TotalWages/EstimatedPopulation,2), nsmall = 2))
-wages <- wages %>% mutate(averageWage = TotalWages/EstimatedPopulation)
+lowestwage %>% ggplot(aes(x = State,fill = State)) + geom_bar() + labs(title = "Number of Low Wage Zip Codes Per State in the Bottom 100" ,x = "State",y = "Frequency")
 ```
+Here we see that Michigan, Arizona, and Texas are the 3 most frequent states in the Bottom 100.
+
+
+```{r}
+options(scipen = 999)
+lowestwage %>% ggplot(aes(x = TotalWages/1000000)) + geom_density() + labs(title = "Density of Total Wages in the Bottom 100" ,x = "Total Wages (Million $)",y = "Density") 
+```
+Similar to the last density chart, this graph predicts the majority of wages in the bottom 100 are around $4.5 million.
+
 
 ### What is the 100 highest average wage zip codes?
 ```{r}
@@ -98,6 +118,17 @@ highestavgwage <- highestavgwage %>% filter(rank <= 100)
 print(head(highestavgwage))
 ```
 
+```{r}
+highestavgwage %>% ggplot(aes(x = State,fill = State)) + geom_bar() + labs(title = "Number of Average Wage Zip Codes Per State in the Top 100" ,x = "State",y = "Frequency")
+```
+The average zip code wage in each state shows a different story than the total wages in each zip code. The two states that make up the majority are New York and California, where New York is much more frequent.
+
+```{r}
+options(scipen = 999)
+highestavgwage %>% ggplot(aes(x = averageWage/1000)) + geom_density() + labs(title = "Density of Average Wages in the Top 100" ,x = "Total Wages (Thousand $)",y = "Density") 
+```
+The densities show that the majority of the average zip code wages in the top 100 are around 190 thousand dollars. 
+
 ### What is the 100 lowest average wage zip codes?
 ```{r}
 lowestavgwage <- wages %>% arrange(averageWage)
@@ -105,6 +136,18 @@ lowestavgwage <- lowestavgwage %>% mutate(rank = 1:28844)
 lowestavgwage <- lowestavgwage %>% filter(rank <= 100)
 print(head(lowestavgwage))
 ```
+
+```{r}
+lowestavgwage %>% ggplot(aes(x = State,fill = State)) + geom_bar() + labs(title = "Number of Average Wage Zip Codes Per State in the Bottom 100" ,x = "State",y = "Frequency")
+```
+Similar to the lowest total wages, Michigan and Arizona are the highest contributors to the bottom 100 average zip code wages.
+
+
+```{r}
+options(scipen = 999)
+lowestavgwage %>% ggplot(aes(x = averageWage/1000)) + geom_density() + labs(title = "Density of Average Wages in the Bottom 100" ,x = "Total Wages (Thousand $)",y = "Density") 
+```
+Here the majority of the average wages in the bottom 100 are around 7.5 thousand dollars.
 
 ### What are the 3 states with the highest wages by total?
 ```{r}
@@ -127,25 +170,21 @@ print(head(lowstatewage))
 ```
 
 
-```{r}
-cor(wages$TaxReturnsFiled,wages$EstimatedPopulation)
-```
-
 ### What does the average of each state look like?
 ```{r}
 state_avg_wage <- wages %>% 
   group_by(State) %>% 
   summarise(avgstatewages = mean(TotalWages))
 
-stateAvgs <- plot_geo(data = state_avg_wage,
+plot_geo(data = state_avg_wage,
                       locationmode = 'USA-states') %>% 
   add_trace(locations = ~State,
             z = ~state_avg_wage$avgstatewages,
-            zmin = 0, 
+            zmin = min(state_avg_wage$avgstatewages), 
             zmax = max(state_avg_wage$avgstatewages),
             color = state_avg_wage$avgstatewages) %>% 
   layout(geo = list(scope= 'usa'),
-         title = "\nAverage Wages in the United States by State (2016)") %>% colorbar(tickprefix = "$")
+         title = "\nAverage Wages in the United States by State") %>% colorbar(tickprefix = "$")
 ```
 The graph above shows that out of all the states, the highest wage location is Washington DC with an average wage of about $550 Million. The second two locations are California and New Jersey by a $150 million wage gap. In comparison to all other Locations, these three stand out as states and territories with high wages.
 
@@ -155,6 +194,66 @@ state_avg_wage <- state_avg_wage %>%
   arrange(-avgstatewages ) 
 head(state_avg_wage)
 ```
+
+### Importing Other Datasets From Online For Further Analysis
+```{r}
+CostOfLiving <- read.csv("Cost of Living.csv")
+StateAbrev <- read.csv("StateAbrev.csv")
+```
+
+### Preparing Data For Joining
+```{r}
+StateAbrev <- StateAbrev %>% rename(State = USPS.Abbreviation)
+CostOfLiving <- CostOfLiving %>% rename(State.Name = State)
+```
+
+### Joining the Datasets
+```{r}
+CostOfLiving <- CostOfLiving %>% full_join(StateAbrev, by = "State.Name")
+State_avg_vs_COL <- state_avg_wage %>% full_join(CostOfLiving, by = "State")
+State_avg_vs_COL <- State_avg_vs_COL %>% select(-Rank,-State.Name)
+```
+
+### Working With the New Dataset To Determine Potential Relationships
+```{r}
+plot_geo(data = State_avg_vs_COL,
+                      locationmode = 'USA-states') %>% 
+  add_trace(locations = ~State,
+            z = ~State_avg_vs_COL$Index,
+            zmin = min(State_avg_vs_COL$Index), 
+            zmax = max(State_avg_vs_COL$Index),
+            color = State_avg_vs_COL$Index) %>% 
+  layout(geo = list(scope= 'usa'),
+         title = "\nCost of living Index in the United States by State")
+```
+Upon inspection of the Cost of Living map in comparison to the Averages Wages map, there are some clear trends. California and DC Remain in the top 3 in both maps. However Hawaii has a much higher cost of living than compared to its average wage. This is most likely due to its status as a "vacation state". The rest of the states are kind of ambiguous when looking at the choropleth map. Further inspection of the correlation will give us an idea of the relationship.
+
+### Testing Correlation in order to quantify the relationship
+```{r}
+cor(State_avg_vs_COL$Index, State_avg_vs_COL$avgstatewages, use = "pairwise.complete.obs")
+```
+Here we see that there is a moderately strong positive correlation between the two variables. Intuitively this is not a surprising discovery, however I will make a correlation matrix to see which of the factors that contribute to the Cost of living carry more weight when looking at the average wage in each state.
+
+### Correlation Matrix
+```{r}
+cor_matrix <- State_avg_vs_COL %>%
+  select(-State) %>%
+  cor(use = "pairwise.complete.obs")
+cor_matrix <- round(cor_matrix, digits = 2)
+
+meltCorMat <- melt(cor_matrix)
+
+meltCorMat %>% ggplot(aes(x = Var1, y = Var2, fill = value)) + geom_tile(color = "white")+
+ scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+   midpoint = 0, limit = c(-1,1), space = "Lab", 
+   name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+ theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+    size = 12, hjust = 1))+
+ coord_fixed() +
+  geom_text(aes(Var2, Var1, label = value), color = "black", size = 4)
+```
+Here we can see that the two biggest correlations other than The total cost of living index is the housing price index and a misc. index which I summarize to mean recreational activities and commodities such as eating out and entertainment systems.
 
 ### Creating scatter map based on longitude and latitude
 ```{r}
@@ -166,13 +265,13 @@ geo_prop <- list(scope = 'usa',
                  showlakes = TRUE, 
                  lakecolor = toRGB('white'))
 
-LandL_graph <- plot_geo(wages, 
-                        lat = ~Lat,
-                        lon = ~Long,
-                        marker = list(size = wages$averageWage/15000),
-                        text = wages$City) %>% layout(geo = geo_prop, title = "\nDensity and Intensity of the Average Wage for US Zip Codes")
+plot_geo(wages, 
+        lat = ~Lat,
+        lon = ~Long,
+        marker = list(size = wages$averageWage/15000),
+        text = wages$City) %>% layout(geo = geo_prop, title = "\nDensity and Intensity of the Average Wage for US Zip Codes")
 ```
-The Map above shows all of the zip codes plotted via their latitude and longitude. The size or intensity of every point is proportional to how high the average wage in the zip code is. 
+The Map above shows all of the zip codes plotted via their latitude and longitude. The size or intensity of every point is proportional to how high the average wage in the zip code is. I just figured I would plot this because its a good looking graph and can express the range of zip codes left in the data after it had been cleaned.
 
 
 
@@ -206,4 +305,11 @@ plot(predict, type = "l",col = "red") + lines(test$averageWage)
 rmse <- sqrt(mean(predict-LineWage$averageWage)^2)
 print(rmse)
 ```
+The error calculation is very low; this indicates a well trained model for future data.
 
+
+### Sources
+
+1. Kaggle:   https://www.kaggle.com/pavansanagapati/us-wages-via-zipcode
+2. YourDictionary:   https://abbreviations.yourdictionary.com/articles/state-abbrev.html
+3. MERIC:   https://meric.mo.gov/data/cost-living-data-series
