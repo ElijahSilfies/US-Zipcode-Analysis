@@ -5,7 +5,7 @@ Further objectives are to take in outside data in order to find trends and corre
 Methods in use:\
 -Basic data cleaning\
 -Joining data sets\
--Ploting and Graphing\
+-Plotting and Graphing\
 -Mapping\
 -Linear Regression Models
 
